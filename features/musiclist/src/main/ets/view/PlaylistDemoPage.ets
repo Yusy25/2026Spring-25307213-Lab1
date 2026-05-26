@@ -13,27 +13,24 @@
  * limitations under the License.
  */
 
+import { PlayList } from '../components/PlayList';
+import { StyleConstants } from 'constantscommon';
+
 /**
- * Routing information on the music page.
+ * 歌单演示页面
+ * 展示如何使用歌单列表组件
  */
-export class RouterUrlConstants {
-  /**
-   * Playback page.
-   */
-  static readonly LIVE: string = 'LivePage';
+@Entry
+@Component
+struct PlaylistDemoPage {
+  @State currentBreakpoint: string = 'md';
 
-  /**
-   * Music list page.
-   */
-  static readonly MUSIC_LIST: string = 'MusicListPage';
-
-  /**
-   * Music review page.
-   */
-  static readonly MUSIC_COMMENT: string = 'MusicCommentPage';
-
-  /**
-   * Playlist detail page.
-   */
-  static readonly PLAYLIST_DETAIL: string = 'PlaylistDetailPage';
+  build() {
+    Column() {
+      PlayList({ currentBreakpoint: $currentBreakpoint })
+    }
+    .width(StyleConstants.FULL_WIDTH)
+    .height(StyleConstants.FULL_HEIGHT)
+    .backgroundColor('#F5F5F5')
+  }
 }

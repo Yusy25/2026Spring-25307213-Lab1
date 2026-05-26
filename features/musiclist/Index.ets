@@ -18,3 +18,6 @@ export { Header } from './src/main/ets/components/Header';
 export { Player } from './src/main/ets/components/Player';
 export { MusicListPage } from './src/main/ets/view/MusicListPage';
 export {songList} from '../musiclist/src/main/ets/viewmodel/SongListData';
+export { SimplePlaylistManager, PlaylistItem } from './src/main/ets/service/SimplePlaylistManager';
+export { PlayList } from './src/main/ets/components/PlayList';
+export { PlaylistDetailPage, PlaylistDetailParams } from './src/main/ets/view/PlaylistDetailPage';

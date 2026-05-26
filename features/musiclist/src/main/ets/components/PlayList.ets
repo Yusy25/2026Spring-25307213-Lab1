@@ -14,134 +14,284 @@
  * limitations under the License.
  */
 
-import { BreakpointConstants, StyleConstants } from 'constantscommon';
-import { MediaService, SongItem, BreakpointType } from 'mediacommon';
-import { SongDataSource } from '../viewmodel/SongDataSource';
-import { ContentConstants } from '../constants/ContentConstants';
+import { BreakpointConstants, StyleConstants, RouterUrlConstants } from 'constantscommon';
+import { BreakpointType } from 'mediacommon';
+import { SimplePlaylistManager, PlaylistItem } from '../service/SimplePlaylistManager';
+import { PlaylistDetailParams } from '../view/PlaylistDetailPage';
 
+/**
+ * 歌单列表组件
+ * 显示所有歌单，支持创建新歌单
+ */
 @Component
 export struct PlayList {
   @Link currentBreakpoint: string;
-  @StorageLink('songList') songList: SongItem[] = [];
-  @StorageLink('isShowPlay') isShowPlay: boolean = false;
-  @StorageLink('bottomRectHeight') bottomRectHeight: number = 0;
+  @StorageLink('pageIndexInfos') pageIndexInfos: NavPathStack = new NavPathStack();
+  
+  // 歌单管理器
+  private playlistManager: SimplePlaylistManager = SimplePlaylistManager.getInstance();
+  
+  // 响应式歌单列表
+  @State playlists: PlaylistItem[] = [];
+  
+  // 是否显示创建歌单对话框
+  @State showCreateDialog: boolean = false;
+  
+  // 新歌单名称
+  @State newPlaylistName: string = '';
 
-  @Builder
-  PlayAll() {
-    Row() {
-      Image($r('app.media.ic_play_all'))
-        .height($r('app.float.play_all_icon_size'))
-        .width($r('app.float.play_all_icon_size'))
-      Text($r('app.string.play_all', this.songList.length))
-        .maxLines(ContentConstants.PLAY_ALL_MAX_LINES)
-        .padding({ left: $r('app.float.play_all_text_padding') })
-        .fontColor(Color.Black)
-        .fontSize(new BreakpointType({
-          sm: $r('app.float.play_font_sm'),
-          md: $r('app.float.play_font_md'),
-          lg: $r('app.float.play_font_lg')
-        }).getValue(this.currentBreakpoint))
-      Blank()
-      Image($r('app.media.ic_order_play'))
-        .width($r('app.float.order_icon_size'))
-        .height($r('app.float.order_icon_size'))
-        .margin({ right: $r('app.float.order_icon_margin') })
-      Image($r('app.media.ic_sort_list'))
-        .height($r('app.float.order_icon_size'))
-        .width($r('app.float.order_icon_size'))
-    }
-    .height($r('app.float.play_all_area_height'))
-    .width(StyleConstants.FULL_WIDTH)
-    .backgroundColor(Color.White)
-    .padding({
-      left: $r('app.float.play_all_area_padding'),
-      right: $r('app.float.play_all_area_padding')
-    })
-    .borderRadius({
-      topRight: $r('app.float.play_all_border_radius'),
-      topLeft: $r('app.float.play_all_border_radius')
-    })
-    .position({
-      x: 0,
-      y: 0
-    })
+  aboutToAppear() {
+    // 初始化时加载歌单列表
+    this.loadPlaylists();
   }
 
+  /**
+   * 加载歌单列表
+   */
+  private loadPlaylists() {
+    this.playlists = this.playlistManager.getPlaylists();
+  }
+
+  /**
+   * 创建新歌单
+   */
+  private createNewPlaylist() {
+    if (this.newPlaylistName.trim() === '') {
+      return;
+    }
+    
+    this.playlistManager.createPlaylist(this.newPlaylistName.trim());
+    this.newPlaylistName = '';
+    this.showCreateDialog = false;
+    
+    // 重新加载歌单列表以更新UI
+    this.loadPlaylists();
+  }
+
+  /**
+   * 歌单项构建器
+   */
   @Builder
-  SongItem(item: SongItem, index: number) {
+  PlaylistItemBuilder(item: PlaylistItem, index: number) {
     Row() {
+      // 歌单图标
       Column() {
-        Text(item.title)
+        Image($r('app.media.ic_avatar1'))
+          .width(48)
+          .height(48)
+          .borderRadius(8)
+      }
+      .width(48)
+      .height(48)
+      .margin({ right: 12 })
+
+      // 歌单信息
+      Column() {
+        Text(item.name)
           .fontColor(Color.Black)
           .fontSize(new BreakpointType({
             sm: $r('app.float.item_font_sm'),
             md: $r('app.float.item_font_md'),
             lg: $r('app.float.item_font_lg')
           }).getValue(this.currentBreakpoint))
-          .margin({ bottom: $r('app.float.list_item_title_margin') })
+          .fontWeight(FontWeight.Medium)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        Text(`${item.songs.length} 首歌曲`)
+          .fontColor(Color.Gray)
+          .fontSize(new BreakpointType({
+            sm: $r('app.float.singer_title_sm'),
+            md: $r('app.float.singer_title_md'),
+            lg: $r('app.float.singer_title_lg')
+          }).getValue(this.currentBreakpoint))
+          .margin({ top: 4 })
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+
+      Blank()
+
+      // 更多操作按钮
+      Image($r('app.media.ic_list_more'))
+        .height($r('app.float.order_icon_size'))
+        .width($r('app.float.order_icon_size'))
+    }
+    .width(StyleConstants.FULL_WIDTH)
+    .height(72)
+    .padding({
+      left: $r('app.float.list_item_padding'),
+      right: $r('app.float.list_item_padding')
+    })
+    .backgroundColor(Color.White)
+    .onClick(() => {
+      // 跳转到歌单详情页
+      const params: PlaylistDetailParams = {
+        playlistId: item.id,
+        playlistName: item.name
+      };
+      this.pageIndexInfos.pushPathByName(RouterUrlConstants.PLAYLIST_DETAIL, params);
+    })
+  }
+
+  /**
+   * 创建歌单按钮
+   */
+  @Builder
+  CreatePlaylistButton() {
+    Row() {
+      // "+" 图标
+      Column() {
+        Text('+')
+          .fontSize(32)
+          .fontColor(Color.Black)
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(48)
+      .height(48)
+      .borderRadius(8)
+      .backgroundColor('#F0F0F0')
+      .justifyContent(FlexAlign.Center)
+      .margin({ right: 12 })
+
+      // 文字
+      Text('创建新歌单')
+        .fontColor(Color.Black)
+        .fontSize(new BreakpointType({
+          sm: $r('app.float.item_font_sm'),
+          md: $r('app.float.item_font_md'),
+          lg: $r('app.float.item_font_lg')
+        }).getValue(this.currentBreakpoint))
+    }
+    .width(StyleConstants.FULL_WIDTH)
+    .height(72)
+    .padding({
+      left: $r('app.float.list_item_padding'),
+      right: $r('app.float.list_item_padding')
+    })
+    .backgroundColor(Color.White)
+    .onClick(() => {
+      this.showCreateDialog = true;
+    })
+  }
+
+  build() {
+    Stack() {
+      Column() {
+        // 标题栏
         Row() {
-          Image(item.mark)
-            .width($r('app.float.list_item_image_size'))
-            .height($r('app.float.list_item_image_size'))
-            .margin({ right: $r('app.float.list_item_image_margin') })
-          Text(item.singer)
-            .opacity($r('app.float.singer_opacity'))
+          Text('我的歌单')
             .fontColor(Color.Black)
+            .fontSize(new BreakpointType({
+              sm: $r('app.float.play_font_sm'),
+              md: $r('app.float.play_font_md'),
+              lg: $r('app.float.play_font_lg')
+            }).getValue(this.currentBreakpoint))
+            .fontWeight(FontWeight.Bold)
+
+          Blank()
+
+          Text(`${this.playlists.length} 个歌单`)
+            .fontColor(Color.Gray)
             .fontSize(new BreakpointType({
               sm: $r('app.float.singer_title_sm'),
               md: $r('app.float.singer_title_md'),
               lg: $r('app.float.singer_title_lg')
             }).getValue(this.currentBreakpoint))
         }
-      }
-      .alignItems(HorizontalAlign.Start)
+        .width(StyleConstants.FULL_WIDTH)
+        .height(56)
+        .padding({
+          left: $r('app.float.list_item_padding'),
+          right: $r('app.float.list_item_padding')
+        })
+        .backgroundColor(Color.White)
 
-      Blank()
-      Image($r('app.media.ic_list_more'))
-        .height($r('app.float.order_icon_size'))
-        .width($r('app.float.order_icon_size'))
-    }
-    .onClick(() => {
-      MediaService.getInstance().loadAssent(index);
-      this.isShowPlay = true;
-    })
-    .height($r('app.float.list_item_height'))
-    .width(StyleConstants.FULL_WIDTH)
-  }
-
-  build() {
-    Column() {
-      this.PlayAll();
-      List() {
-        LazyForEach(new SongDataSource(this.songList), (item: SongItem, index: number) => {
+        // 歌单列表
+        List() {
+          // 创建歌单按钮
           ListItem() {
-            Column() {
-              this.SongItem(item, index);
-            }
-            .padding({
-              left: $r('app.float.list_item_padding'),
-              right: $r('app.float.list_item_padding')
-            })
+            this.CreatePlaylistButton()
           }
-        }, (item: SongItem, index?: number) => (item).toString() + index)
+
+          // 歌单项
+          ForEach(this.playlists, (item: PlaylistItem, index: number) => {
+            ListItem() {
+              this.PlaylistItemBuilder(item, index)
+            }
+          }, (item: PlaylistItem, index?: number) => item.id.toString())
+        }
+        .width(StyleConstants.FULL_WIDTH)
+        .backgroundColor('#F5F5F5')
+        .layoutWeight(1)
+        .divider({
+          color: $r('app.color.list_divider_color'),
+          strokeWidth: $r('app.float.list_stroke_width'),
+          startMargin: $r('app.float.list_item_padding'),
+          endMargin: $r('app.float.list_item_padding')
+        })
       }
       .width(StyleConstants.FULL_WIDTH)
-      .backgroundColor(Color.White)
-      .margin({ top: $r('app.float.list_area_margin_top') })
-      .lanes(this.currentBreakpoint === BreakpointConstants.BREAKPOINT_LG ?
-        ContentConstants.COL_TWO : ContentConstants.COL_ONE)
-      .layoutWeight(1)
-      .cachedCount(2)
-      .divider({
-        color: $r('app.color.list_divider_color'),
-        strokeWidth: $r('app.float.list_stroke_width'),
-        startMargin: $r('app.float.list_item_padding'),
-        endMargin: $r('app.float.list_item_padding')
-      })
+      .height(StyleConstants.FULL_HEIGHT)
+
+      // 创建歌单对话框
+      if (this.showCreateDialog) {
+        Column() {
+          Column() {
+            // 对话框标题
+            Text('创建新歌单')
+              .fontSize(20)
+              .fontWeight(FontWeight.Bold)
+              .margin({ bottom: 20 })
+
+            // 输入框
+            TextInput({ placeholder: '请输入歌单名称' })
+              .width('100%')
+              .height(48)
+              .onChange((value: string) => {
+                this.newPlaylistName = value;
+              })
+              .margin({ bottom: 20 })
+
+            // 按钮行
+            Row() {
+              Button('取消')
+                .width('45%')
+                .backgroundColor('#F0F0F0')
+                .fontColor(Color.Black)
+                .onClick(() => {
+                  this.showCreateDialog = false;
+                  this.newPlaylistName = '';
+                })
+
+              Blank()
+
+              Button('创建')
+                .width('45%')
+                .onClick(() => {
+                  this.createNewPlaylist();
+                })
+            }
+            .width('100%')
+          }
+          .width('80%')
+          .padding(20)
+          .backgroundColor(Color.White)
+          .borderRadius(12)
+          .margin({ top: 100 })  // 距离顶部100vp，避免紧贴顶部
+        }
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(0, 0, 0, 0.4)')
+        .alignItems(HorizontalAlign.Center)
+        .onClick(() => {
+          // 点击背景关闭对话框
+          this.showCreateDialog = false;
+          this.newPlaylistName = '';
+        })
+      }
     }
-    .padding({
-      top: this.currentBreakpoint === BreakpointConstants.BREAKPOINT_SM ? 0 : $r('app.float.list_area_padding_top'),
-      bottom: 48 + this.getUIContext().px2vp(this.bottomRectHeight)
-    })
+    .width(StyleConstants.FULL_WIDTH)
+    .height(StyleConstants.FULL_HEIGHT)
   }
 }
