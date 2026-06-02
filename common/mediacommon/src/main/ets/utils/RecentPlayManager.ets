@@ -250,9 +250,20 @@ export class RecentPlayManager {
 
   /**
    * 获取最近播放歌曲列表（按播放时间降序）
+   * 根据 songId 从原始歌曲列表中查找完整信息
    */
   public getRecentPlays(): SongItem[] {
-    return this.recentPlays.map(record => record.toSongItem());
+    let songList: SongItem[] = AppStorage.get('songList') || [];
+    
+    return this.recentPlays.map(record => {
+      // 尝试从原始列表中查找完整歌曲信息
+      let fullSong = songList.find(song => song.id === record.songId);
+      if (fullSong) {
+        return fullSong;
+      }
+      // 找不到则使用记录中的基本信息
+      return record.toSongItem();
+    });
   }
 
   /**
@@ -264,9 +275,20 @@ export class RecentPlayManager {
 
   /**
    * 获取前 N 首最近播放
+   * 根据 songId 从原始歌曲列表中查找完整信息
    */
   public getTopRecentPlays(count: number): SongItem[] {
-    return this.recentPlays.slice(0, count).map(record => record.toSongItem());
+    let songList: SongItem[] = AppStorage.get('songList') || [];
+    
+    return this.recentPlays.slice(0, count).map(record => {
+      // 尝试从原始列表中查找完整歌曲信息
+      let fullSong = songList.find(song => song.id === record.songId);
+      if (fullSong) {
+        return fullSong;
+      }
+      // 找不到则使用记录中的基本信息
+      return record.toSongItem();
+    });
   }
 
   /**

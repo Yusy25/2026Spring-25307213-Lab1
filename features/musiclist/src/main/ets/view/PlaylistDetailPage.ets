@@ -17,6 +17,7 @@ import { BreakpointType, MediaService, SongItem } from 'mediacommon';
 import { StyleConstants, BreakpointConstants } from 'constantscommon';
 import { SimplePlaylistManager } from '../service/SimplePlaylistManager';
 import { songList } from '../viewmodel/SongListData';
+import { Player } from '../components/Player';
 
 /**
  * 歌单详情页面参数
@@ -35,6 +36,7 @@ export struct PlaylistDetailPage {
   @StorageProp('currentBreakpoint') currentBreakpoint: string = BreakpointConstants.BREAKPOINT_SM;
   @StorageLink('pageIndexInfos') pageIndexInfos: NavPathStack = new NavPathStack();
   @StorageLink('topRectHeight') topRectHeight: number = 0;
+  @StorageLink('bottomRectHeight') bottomRectHeight: number = 0;
   
   // 页面参数
   @State playlistId: number = 0;
@@ -371,6 +373,13 @@ export struct PlaylistDetailPage {
       }
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
+      .padding({
+        // 为底部播放栏预留空间
+        bottom: 48 + this.getUIContext().px2vp(this.bottomRectHeight) + 8
+      })
+
+      // 底部播放栏
+      Player()
 
       // 添加歌曲对话框
       if (this.showAddSongDialog) {
