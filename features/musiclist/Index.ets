@@ -21,3 +21,8 @@ export {songList} from '../musiclist/src/main/ets/viewmodel/SongListData';
 export { SimplePlaylistManager, PlaylistItem } from './src/main/ets/service/SimplePlaylistManager';
 export { PlayList } from './src/main/ets/components/PlayList';
 export { PlaylistDetailPage, PlaylistDetailParams } from './src/main/ets/view/PlaylistDetailPage';
+export { RecentPlayComponent } from './src/main/ets/components/RecentPlayComponent';
+export { RecentPlayPage } from './src/main/ets/view/RecentPlayPage';
+export { MusicTabHeader, MusicTabType } from './src/main/ets/components/MusicTabHeader';
+export { RecentPlayContent } from './src/main/ets/components/RecentPlayContent';
+export { PlayListContent } from './src/main/ets/components/PlayListContent';

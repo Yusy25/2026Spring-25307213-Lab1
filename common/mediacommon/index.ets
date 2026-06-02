@@ -21,3 +21,5 @@ export { MusicPlayMode } from './src/main/ets/viewmodel/MusicData';
 export { PreferencesUtil } from './src/main/ets/utils/PreferencesUtil';
 export { Logger } from './src/main/ets/utils/Logger';
 export { ColorConversion } from './src/main/ets/utils/ColorConversion';
+export { RecentPlayManager } from './src/main/ets/utils/RecentPlayManager';
+export { RecentPlayRecord } from './src/main/ets/viewmodel/RecentPlayRecord';

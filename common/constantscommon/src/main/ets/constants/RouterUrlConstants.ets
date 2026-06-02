@@ -36,4 +36,9 @@ export class RouterUrlConstants {
    * Playlist detail page.
    */
   static readonly PLAYLIST_DETAIL: string = 'PlaylistDetailPage';
+
+  /**
+   * Recent play page.
+   */
+  static readonly RECENT_PLAY: string = 'RecentPlayPage';
 }

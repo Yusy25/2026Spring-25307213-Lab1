@@ -29,6 +29,7 @@ import { CardData } from '../viewmodel/CardData';
 import { BackgroundUtil } from './BackgroundUtil';
 import { MediaTools } from './MediaTools';
 import { Logger } from './Logger';
+import { RecentPlayManager } from './RecentPlayManager';
 
 const TAG = 'MediaService';
 
@@ -310,6 +311,10 @@ export class MediaService {
     }
     BackgroundUtil.startContinuousTask(this.context);
     this.updateMusicIndex(musicIndex);
+    
+    // 添加到最近播放记录
+    RecentPlayManager.getInstance().addRecentPlay(this.songList[this.musicIndex]);
+    
     if (this.isFirst && this.avPlayer) {
       this.isFirst = false;
       this.songItem = await this.songItemBuilder.build(this.songList[this.musicIndex]);

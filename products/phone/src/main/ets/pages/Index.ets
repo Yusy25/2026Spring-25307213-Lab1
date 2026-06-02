@@ -15,7 +15,7 @@
 
 import { BreakpointConstants, RouterUrlConstants, StyleConstants } from 'constantscommon';
 import { LivePage } from 'live';
-import { MusicListPage, PlaylistDetailPage } from 'musiclist';
+import { MusicListPage, PlaylistDetailPage, RecentPlayPage } from 'musiclist';
 import { MusicCommentPage } from 'musiccomment';
 import IndexItem from '../viewmodel/IndexItem';
 import IndexViewModel from '../viewmodel/IndexViewModel';
@@ -48,6 +48,11 @@ struct Index {
     } else if (name === RouterUrlConstants.PLAYLIST_DETAIL) {
       NavDestination() {
         PlaylistDetailPage()
+      }
+      .hideTitleBar(true)
+    } else if (name === RouterUrlConstants.RECENT_PLAY) {
+      NavDestination() {
+        RecentPlayPage()
       }
       .hideTitleBar(true)
     }
