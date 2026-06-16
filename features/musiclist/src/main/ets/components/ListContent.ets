@@ -26,7 +26,7 @@ import { PlayListContent } from './PlayListContent';
  */
 @Component
 export struct Content {
-  @StorageProp('currentBreakpoint') currentBreakpoint: string = BreakpointConstants.BREAKPOINT_SM;
+  @StorageLink('currentBreakpoint') currentBreakpoint: string = BreakpointConstants.BREAKPOINT_SM;
   @StorageLink('topRectHeight') topRectHeight: number = 0;
   @StorageLink('bottomRectHeight') bottomRectHeight: number = 0;
   @State currentTab: MusicTabType = MusicTabType.RECENT_PLAY;
@@ -45,7 +45,7 @@ export struct Content {
     }) {
       // 左侧：专辑封面
       GridCol({ span: { sm: GridConstants.SPAN_TWELVE, md: GridConstants.SPAN_SIX, lg: GridConstants.SPAN_FOUR } }) {
-        AlbumCover({ currentBreakpoint: this.currentBreakpoint })
+        AlbumCover({ currentBreakpoint: $currentBreakpoint })
           .padding({ top: this.getUIContext().px2vp(this.topRectHeight) })
       }
       .backgroundColor($r('app.color.album_background'))

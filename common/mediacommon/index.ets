@@ -23,3 +23,4 @@ export { Logger } from './src/main/ets/utils/Logger';
 export { ColorConversion } from './src/main/ets/utils/ColorConversion';
 export { RecentPlayManager } from './src/main/ets/utils/RecentPlayManager';
 export { RecentPlayRecord } from './src/main/ets/viewmodel/RecentPlayRecord';
+export { DynamicBackground, ImmersivePageContainer } from './src/main/ets/components/DynamicBackground';

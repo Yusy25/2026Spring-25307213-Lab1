@@ -13,11 +13,12 @@
  * limitations under the License.
  */
 
-import { BreakpointType, MediaService, SongItem } from 'mediacommon';
+import { BreakpointType, MediaService, SongItem, DynamicBackground } from 'mediacommon';
 import { StyleConstants, BreakpointConstants } from 'constantscommon';
 import { SimplePlaylistManager } from '../service/SimplePlaylistManager';
 import { songList } from '../viewmodel/SongListData';
 import { Player } from '../components/Player';
+import { ListAnimationUtils } from '../utils/ListAnimationUtils';
 
 /**
  * 歌单详情页面参数
@@ -54,6 +55,12 @@ export struct PlaylistDetailPage {
   // 选中的歌曲ID列表
   @State selectedSongIds: number[] = [];
 
+  // ========== 动画相关状态 ==========
+  // 歌曲项动画状态：Map<索引, 是否已显示>
+  @State songItemVisible: Map<number, boolean> = new Map();
+  // 按压状态：Map<索引, 是否按压>
+  @State songItemPressed: Map<number, boolean> = new Map();
+
   aboutToAppear() {
     // 从导航参数中获取歌单信息
     const params = this.pageIndexInfos.getParamByIndex(this.pageIndexInfos.size() - 1) as PlaylistDetailParams;
@@ -80,6 +87,9 @@ export struct PlaylistDetailPage {
     
     // 重新初始化 MediaService 以使用新的歌曲列表
     const mediaService = MediaService.getInstance();
+    
+    // 更新 MediaService 中的 songList
+    mediaService.updateSongList(this.songs);
     
     // 播放指定索引的歌曲
     mediaService.loadAssent(index);
@@ -132,7 +142,7 @@ export struct PlaylistDetailPage {
       // 歌曲信息
       Column() {
         Text(song.title)
-          .fontColor(Color.Black)
+          .fontColor(Color.White)
           .fontSize(new BreakpointType({
             sm: $r('app.float.item_font_sm'),
             md: $r('app.float.item_font_md'),
@@ -143,7 +153,7 @@ export struct PlaylistDetailPage {
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
         Text(song.singer)
-          .fontColor(Color.Gray)
+          .fontColor('rgba(255, 255, 255, 0.7)')
           .fontSize(new BreakpointType({
             sm: $r('app.float.singer_title_sm'),
             md: $r('app.float.singer_title_md'),
@@ -167,9 +177,50 @@ export struct PlaylistDetailPage {
       left: $r('app.float.list_item_padding'),
       right: $r('app.float.list_item_padding')
     })
-    .backgroundColor(Color.White)
-    .onClick(() => {
-      this.playSong(song, index);
+    .backgroundColor('rgba(0, 0, 0, 0.3)')
+    // ========== 入场动画 ==========
+    .opacity(this.songItemVisible.get(index) ? 1 : 0)
+    .translate({ 
+      y: this.songItemVisible.get(index) ? 0 : ListAnimationUtils.ENTRANCE_CONFIG.translateY 
+    })
+    // ========== 按压反馈 ==========
+    .scale({ 
+      x: this.songItemPressed.get(index) ? ListAnimationUtils.PRESS_CONFIG.scale : 1,
+      y: this.songItemPressed.get(index) ? ListAnimationUtils.PRESS_CONFIG.scale : 1
+    })
+    // ========== 事件处理 ==========
+    .onAppear(() => {
+      // 触发入场动画
+      const delay = ListAnimationUtils.getEntranceDelay(index);
+      setTimeout(() => {
+        animateTo({
+          duration: ListAnimationUtils.ENTRANCE_CONFIG.duration,
+          curve: ListAnimationUtils.ENTRANCE_CONFIG.curve
+        }, () => {
+          this.songItemVisible.set(index, true);
+        });
+      }, delay);
+    })
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        // 按下：缩小
+        animateTo({
+          duration: ListAnimationUtils.PRESS_CONFIG.duration
+        }, () => {
+          this.songItemPressed.set(index, true);
+        });
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        // 抬起/取消：恢复
+        animateTo({
+          duration: ListAnimationUtils.PRESS_CONFIG.duration
+        }, () => {
+          this.songItemPressed.set(index, false);
+        });
+        // 点击事件
+        if (event.type === TouchType.Up) {
+          this.playSong(song, index);
+        }
+      }
     })
   }
 
@@ -182,17 +233,17 @@ export struct PlaylistDetailPage {
       Image($r('app.media.ic_avatar1'))
         .width(80)
         .height(80)
-        .opacity(0.3)
+        .opacity(0.5)
         .margin({ bottom: 16 })
 
       Text('歌单暂无歌曲')
         .fontSize(16)
-        .fontColor(Color.Gray)
+        .fontColor(Color.White)
         .margin({ bottom: 8 })
 
       Text('点击右上角"添加歌曲"按钮')
         .fontSize(14)
-        .fontColor('#999999')
+        .fontColor('rgba(255, 255, 255, 0.6)')
     }
     .width(StyleConstants.FULL_WIDTH)
     .height(200)
@@ -304,87 +355,95 @@ export struct PlaylistDetailPage {
 
   build() {
     Stack() {
-      Column() {
-        // 顶部导航栏
-        Row() {
-          // 返回按钮
-          Image($r('app.media.ic_back'))
-            .width(24)
-            .height(24)
-            .onClick(() => {
-              this.pageIndexInfos.pop();
-            })
-            .margin({ right: 16 })
+      // 底层：沉浸式动态背景
+      DynamicBackground({ blurRadius: 35, brightnessValue: 0.4 })
 
-          // 歌单名称
-          Text(this.playlistName)
-            .fontColor(Color.Black)
-            .fontSize(new BreakpointType({
-              sm: $r('app.float.play_font_sm'),
-              md: $r('app.float.play_font_md'),
-              lg: $r('app.float.play_font_lg')
-            }).getValue(this.currentBreakpoint))
-            .fontWeight(FontWeight.Bold)
+      // 上层：页面内容
+      Stack() {
+        Column() {
+          // 顶部导航栏
+          Row() {
+            // 返回按钮
+            Image($r('app.media.ic_back'))
+              .width(24)
+              .height(24)
+              .onClick(() => {
+                this.pageIndexInfos.pop();
+              })
+              .margin({ right: 16 })
+
+            // 歌单名称
+            Text(this.playlistName)
+              .fontColor(Color.White)
+              .fontSize(new BreakpointType({
+                sm: $r('app.float.play_font_sm'),
+                md: $r('app.float.play_font_md'),
+                lg: $r('app.float.play_font_lg')
+              }).getValue(this.currentBreakpoint))
+              .fontWeight(FontWeight.Bold)
+              .layoutWeight(1)
+
+            // 添加歌曲按钮
+            Button('添加歌曲')
+              .fontSize(14)
+              .height(36)
+              .onClick(() => {
+                this.showAddSongDialog = true;
+              })
+          }
+          .width(StyleConstants.FULL_WIDTH)
+          .height(56)
+          .padding({
+            left: $r('app.float.list_item_padding'),
+            right: $r('app.float.list_item_padding')
+          })
+          .backgroundColor('rgba(0, 0, 0, 0.3)') // 半透明背景，增强可读性
+          .margin({ top: this.getUIContext().px2vp(this.topRectHeight) })
+
+          // 歌曲列表或空状态
+          if (this.songs.length === 0) {
+            Column() {
+              this.EmptyStateBuilder()
+            }
+            .width(StyleConstants.FULL_WIDTH)
             .layoutWeight(1)
-
-          // 添加歌曲按钮
-          Button('添加歌曲')
-            .fontSize(14)
-            .height(36)
-            .onClick(() => {
-              this.showAddSongDialog = true;
+            .justifyContent(FlexAlign.Center)
+          } else {
+            List() {
+              ForEach(this.songs, (song: SongItem, index: number) => {
+                ListItem() {
+                  this.SongItemBuilder(song, index)
+                }
+              }, (song: SongItem, index?: number) => song.id.toString())
+            }
+            .width(StyleConstants.FULL_WIDTH)
+            .backgroundColor('rgba(0, 0, 0, 0.2)') // 半透明背景
+            .layoutWeight(1)
+            .divider({
+              color: 'rgba(255, 255, 255, 0.1)',
+              strokeWidth: 1,
+              startMargin: $r('app.float.list_item_padding'),
+              endMargin: $r('app.float.list_item_padding')
             })
+          }
         }
         .width(StyleConstants.FULL_WIDTH)
-        .height(56)
+        .height(StyleConstants.FULL_HEIGHT)
         .padding({
-          left: $r('app.float.list_item_padding'),
-          right: $r('app.float.list_item_padding')
+          // 为底部播放栏预留空间
+          bottom: 48 + this.getUIContext().px2vp(this.bottomRectHeight) + 8
         })
-        .backgroundColor(Color.White)
-        .margin({ top: this.getUIContext().px2vp(this.topRectHeight) })
 
-        // 歌曲列表或空状态
-        if (this.songs.length === 0) {
-          Column() {
-            this.EmptyStateBuilder()
-          }
-          .width(StyleConstants.FULL_WIDTH)
-          .layoutWeight(1)
-          .justifyContent(FlexAlign.Center)
-        } else {
-          List() {
-            ForEach(this.songs, (song: SongItem, index: number) => {
-              ListItem() {
-                this.SongItemBuilder(song, index)
-              }
-            }, (song: SongItem, index?: number) => song.id.toString())
-          }
-          .width(StyleConstants.FULL_WIDTH)
-          .backgroundColor('#F5F5F5')
-          .layoutWeight(1)
-          .divider({
-            color: $r('app.color.list_divider_color'),
-            strokeWidth: $r('app.float.list_stroke_width'),
-            startMargin: $r('app.float.list_item_padding'),
-            endMargin: $r('app.float.list_item_padding')
-          })
+        // 底部播放栏
+        Player()
+
+        // 添加歌曲对话框
+        if (this.showAddSongDialog) {
+          this.AddSongDialogBuilder()
         }
       }
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
-      .padding({
-        // 为底部播放栏预留空间
-        bottom: 48 + this.getUIContext().px2vp(this.bottomRectHeight) + 8
-      })
-
-      // 底部播放栏
-      Player()
-
-      // 添加歌曲对话框
-      if (this.showAddSongDialog) {
-        this.AddSongDialogBuilder()
-      }
     }
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)

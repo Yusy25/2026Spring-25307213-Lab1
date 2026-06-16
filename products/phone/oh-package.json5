@@ -8,6 +8,7 @@
   "version": "1.0.0",
   "dependencies": {
     "constantscommon": "file:../../common/constantscommon",
+    "mediacommon": "file:../../common/mediacommon",
     "live": "file:../../features/live",
     "musiccomment": "file:../../features/musiccomment",
     "musiclist": "file:../../features/musiclist"

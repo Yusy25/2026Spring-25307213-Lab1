@@ -15,6 +15,7 @@
 
 import { BreakpointConstants, StyleConstants, RouterUrlConstants } from 'constantscommon';
 import { BreakpointType, SongItem, MediaService, RecentPlayManager } from 'mediacommon';
+import { ListAnimationUtils } from '../utils/ListAnimationUtils';
 
 /**
  * 最近播放组件
@@ -33,6 +34,12 @@ export struct RecentPlayComponent {
   @Prop showHeader: boolean = true;
   
   private recentPlayManager: RecentPlayManager = RecentPlayManager.getInstance();
+
+  // ========== 动画相关状态 ==========
+  // 歌曲项动画状态：Map<索引, 是否已显示>
+  @State songItemVisible: Map<number, boolean> = new Map();
+  // 按压状态：Map<索引, 是否按压>
+  @State songItemPressed: Map<number, boolean> = new Map();
 
   aboutToAppear() {
     // 初始化最近播放管理器并加载数据
@@ -122,8 +129,49 @@ export struct RecentPlayComponent {
       right: $r('app.float.list_item_padding')
     })
     .backgroundColor(Color.White)
-    .onClick(() => {
-      this.playSong(song, index);
+    // ========== 入场动画 ==========
+    .opacity(this.songItemVisible.get(index) ? 1 : 0)
+    .translate({ 
+      y: this.songItemVisible.get(index) ? 0 : ListAnimationUtils.ENTRANCE_CONFIG.translateY 
+    })
+    // ========== 按压反馈 ==========
+    .scale({ 
+      x: this.songItemPressed.get(index) ? ListAnimationUtils.PRESS_CONFIG.scale : 1,
+      y: this.songItemPressed.get(index) ? ListAnimationUtils.PRESS_CONFIG.scale : 1
+    })
+    // ========== 事件处理 ==========
+    .onAppear(() => {
+      // 触发入场动画
+      const delay = ListAnimationUtils.getEntranceDelay(index);
+      setTimeout(() => {
+        animateTo({
+          duration: ListAnimationUtils.ENTRANCE_CONFIG.duration,
+          curve: ListAnimationUtils.ENTRANCE_CONFIG.curve
+        }, () => {
+          this.songItemVisible.set(index, true);
+        });
+      }, delay);
+    })
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        // 按下：缩小
+        animateTo({
+          duration: ListAnimationUtils.PRESS_CONFIG.duration
+        }, () => {
+          this.songItemPressed.set(index, true);
+        });
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        // 抬起/取消：恢复
+        animateTo({
+          duration: ListAnimationUtils.PRESS_CONFIG.duration
+        }, () => {
+          this.songItemPressed.set(index, false);
+        });
+        // 点击事件
+        if (event.type === TouchType.Up) {
+          this.playSong(song, index);
+        }
+      }
     })
   }
 

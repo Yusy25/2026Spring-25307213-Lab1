@@ -74,6 +74,11 @@ export class MediaService {
       case 'idle':
         Logger.info(TAG, 'AVPlayer state idle called.');
         this.state = AudioPlayerState.IDLE;
+        // 边界检查：确保 songList 不为空且 musicIndex 在有效范围内
+        if (this.songList.length === 0 || this.musicIndex < 0 || this.musicIndex >= this.songList.length) {
+          Logger.error(TAG, `Invalid access: songList.length=${this.songList.length}, musicIndex=${this.musicIndex}`);
+          return;
+        }
         this.songItem = await this.songItemBuilder.build(this.songList[this.musicIndex]);
         let url = this.songItemBuilder.getRealUrl();
         if (this.avPlayer && url) {
@@ -272,6 +277,11 @@ export class MediaService {
 
   async setAVMetadata() {
     let id = this.musicIndex;
+    // 边界检查：确保 songList 不为空且 musicIndex 在有效范围内
+    if (this.songList.length === 0 || this.musicIndex < 0 || this.musicIndex >= this.songList.length) {
+      Logger.error(TAG, `setAVMetadata: Invalid access, songList.length=${this.songList.length}, musicIndex=${this.musicIndex}`);
+      return;
+    }
     try {
       if (this.context) {
         let mediaImage = await MediaTools.getPixelMapFromResource(this.context,
@@ -315,6 +325,9 @@ export class MediaService {
     // 添加到最近播放记录
     RecentPlayManager.getInstance().addRecentPlay(this.songList[this.musicIndex]);
     
+    // 更新当前播放歌曲封面（用于沉浸式动态背景）
+    this.updateCurrentCover();
+    
     if (this.isFirst && this.avPlayer) {
       this.isFirst = false;
       this.songItem = await this.songItemBuilder.build(this.songList[this.musicIndex]);
@@ -339,6 +352,40 @@ export class MediaService {
    */
   public getFirst() {
     return this.isFirst;
+  }
+
+  /**
+   * Update song list.
+   * 
+   * @param songList new song list
+   */
+  public updateSongList(songList: SongItem[]) {
+    this.songList = songList;
+    Logger.info(TAG, 'updateSongList: songList length = ' + this.songList.length);
+  }
+
+  /**
+   * Update current cover for immersive background.
+   * 更新当前播放歌曲的封面到全局状态
+   */
+  private updateCurrentCover() {
+    // 边界检查
+    if (this.songList.length === 0 || this.musicIndex < 0 || this.musicIndex >= this.songList.length) {
+      Logger.error(TAG, `updateCurrentCover: Invalid index, clear cover`);
+      AppStorage.setOrCreate('currentCover', '');
+      return;
+    }
+    
+    const currentSong = this.songList[this.musicIndex];
+    if (currentSong && currentSong.label) {
+      // 更新封面到全局状态
+      AppStorage.setOrCreate('currentCover', currentSong.label);
+      Logger.info(TAG, `updateCurrentCover: Updated cover for song "${currentSong.title}"`);
+    } else {
+      // 没有封面，清空
+      AppStorage.setOrCreate('currentCover', '');
+      Logger.info(TAG, 'updateCurrentCover: No cover available');
+    }
   }
 
   /**
@@ -484,6 +531,11 @@ export class MediaService {
 
   private playNext() {
     Logger.info(TAG, 'playNext Index:' + this.musicIndex + ', length-1:' + (this.songList.length - 1));
+    // 边界检查：如果歌单为空，直接返回
+    if (this.songList.length === 0) {
+      Logger.error(TAG, 'playNext: songList is empty');
+      return;
+    }
     if (this.musicIndex === this.songList.length - 1) {
       this.loadAssent(0);
     } else {
@@ -495,6 +547,11 @@ export class MediaService {
    * Play previous music.
    */
   public playPrevious() {
+    // 边界检查：如果歌单为空，直接返回
+    if (this.songList.length === 0) {
+      Logger.error(TAG, 'playPrevious: songList is empty');
+      return;
+    }
     switch (this.playMode) {
       case MusicPlayMode.RANDOM:
         this.playRandom();
@@ -515,6 +572,11 @@ export class MediaService {
   }
 
   private playRandom() {
+    // 边界检查：如果歌单为空，直接返回
+    if (this.songList.length === 0) {
+      Logger.error(TAG, 'playRandom: songList is empty');
+      return;
+    }
     let num = Math.round(Math.random() * (this.songList.length - 1));
     if (this.musicIndex === num) {
       this.playRandom();

@@ -18,6 +18,7 @@ import { BreakpointConstants, StyleConstants, RouterUrlConstants } from 'constan
 import { BreakpointType } from 'mediacommon';
 import { SimplePlaylistManager, PlaylistItem } from '../service/SimplePlaylistManager';
 import { PlaylistDetailParams } from '../view/PlaylistDetailPage';
+import { ListAnimationUtils } from '../utils/ListAnimationUtils';
 
 /**
  * 歌单列表组件
@@ -39,6 +40,15 @@ export struct PlayList {
   
   // 新歌单名称
   @State newPlaylistName: string = '';
+
+  // ========== 动画相关状态 ==========
+  // 歌单项动画状态：Map<索引, 是否已显示>
+  @State playlistItemVisible: Map<number, boolean> = new Map();
+  // 按压状态：Map<索引, 是否按压>
+  @State playlistItemPressed: Map<number, boolean> = new Map();
+  // 创建按钮动画状态
+  @State createButtonVisible: boolean = false;
+  @State createButtonPressed: boolean = false;
 
   aboutToAppear() {
     // 初始化时加载歌单列表
@@ -124,13 +134,53 @@ export struct PlayList {
       right: $r('app.float.list_item_padding')
     })
     .backgroundColor(Color.White)
-    .onClick(() => {
-      // 跳转到歌单详情页
-      const params: PlaylistDetailParams = {
-        playlistId: item.id,
-        playlistName: item.name
-      };
-      this.pageIndexInfos.pushPathByName(RouterUrlConstants.PLAYLIST_DETAIL, params);
+    // ========== 入场动画 ==========
+    .opacity(this.playlistItemVisible.get(index) ? 1 : 0)
+    .translate({ 
+      y: this.playlistItemVisible.get(index) ? 0 : ListAnimationUtils.ENTRANCE_CONFIG.translateY 
+    })
+    // ========== 按压反馈 ==========
+    .scale({ 
+      x: this.playlistItemPressed.get(index) ? ListAnimationUtils.PRESS_CONFIG.scale : 1,
+      y: this.playlistItemPressed.get(index) ? ListAnimationUtils.PRESS_CONFIG.scale : 1
+    })
+    // ========== 事件处理 ==========
+    .onAppear(() => {
+      // 触发入场动画
+      const delay = ListAnimationUtils.getEntranceDelay(index);
+      setTimeout(() => {
+        animateTo({
+          duration: ListAnimationUtils.ENTRANCE_CONFIG.duration,
+          curve: ListAnimationUtils.ENTRANCE_CONFIG.curve
+        }, () => {
+          this.playlistItemVisible.set(index, true);
+        });
+      }, delay);
+    })
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        // 按下：缩小
+        animateTo({
+          duration: ListAnimationUtils.PRESS_CONFIG.duration
+        }, () => {
+          this.playlistItemPressed.set(index, true);
+        });
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        // 抬起/取消：恢复
+        animateTo({
+          duration: ListAnimationUtils.PRESS_CONFIG.duration
+        }, () => {
+          this.playlistItemPressed.set(index, false);
+        });
+        // 点击事件
+        if (event.type === TouchType.Up) {
+          const params: PlaylistDetailParams = {
+            playlistId: item.id,
+            playlistName: item.name
+          };
+          this.pageIndexInfos.pushPathByName(RouterUrlConstants.PLAYLIST_DETAIL, params);
+        }
+      }
     })
   }
 
@@ -170,8 +220,43 @@ export struct PlayList {
       right: $r('app.float.list_item_padding')
     })
     .backgroundColor(Color.White)
-    .onClick(() => {
-      this.showCreateDialog = true;
+    // ========== 入场动画 ==========
+    .opacity(this.createButtonVisible ? 1 : 0)
+    .translate({ 
+      y: this.createButtonVisible ? 0 : ListAnimationUtils.ENTRANCE_CONFIG.translateY 
+    })
+    // ========== 按压反馈 ==========
+    .scale({ 
+      x: this.createButtonPressed ? ListAnimationUtils.PRESS_CONFIG.scale : 1,
+      y: this.createButtonPressed ? ListAnimationUtils.PRESS_CONFIG.scale : 1
+    })
+    // ========== 事件处理 ==========
+    .onAppear(() => {
+      // 创建按钮立即显示（无延迟）
+      animateTo({
+        duration: ListAnimationUtils.ENTRANCE_CONFIG.duration,
+        curve: ListAnimationUtils.ENTRANCE_CONFIG.curve
+      }, () => {
+        this.createButtonVisible = true;
+      });
+    })
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        animateTo({
+          duration: ListAnimationUtils.PRESS_CONFIG.duration
+        }, () => {
+          this.createButtonPressed = true;
+        });
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        animateTo({
+          duration: ListAnimationUtils.PRESS_CONFIG.duration
+        }, () => {
+          this.createButtonPressed = false;
+        });
+        if (event.type === TouchType.Up) {
+          this.showCreateDialog = true;
+        }
+      }
     })
   }
 
@@ -279,6 +364,9 @@ export struct PlayList {
           .backgroundColor(Color.White)
           .borderRadius(12)
           .margin({ top: 100 })  // 距离顶部100vp，避免紧贴顶部
+          .onClick(() => {
+            // 阻止事件冒泡到背景，不做任何操作
+          })
         }
         .width('100%')
         .height('100%')

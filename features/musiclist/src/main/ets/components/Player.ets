@@ -73,7 +73,10 @@ export struct Player {
   build() {
     Row() {
       Row() {
-        Image(this.songList[this.selectIndex]?.label)
+        // 添加边界检查，避免数组越界
+        Image(this.songList.length > 0 && this.selectIndex >= 0 && this.selectIndex < this.songList.length 
+          ? this.songList[this.selectIndex]?.label 
+          : $r('app.media.ic_avatar1'))
           .height($r('app.float.cover_height'))
           .width($r('app.float.cover_width'))
           .borderRadius($r('app.float.label_border_radius'))
@@ -83,7 +86,10 @@ export struct Player {
             this.animationFun();
           })
         Column() {
-          Text(this.songList[this.selectIndex].title)
+          // 添加边界检查，避免数组越界
+          Text(this.songList.length > 0 && this.selectIndex >= 0 && this.selectIndex < this.songList.length 
+            ? this.songList[this.selectIndex].title 
+            : '未知歌曲')
             .fontColor($r('app.color.song_name'))
             .fontSize(new BreakpointType({
               sm: $r('app.float.song_title_sm'),
@@ -95,7 +101,10 @@ export struct Player {
               .height($r('app.float.vip_icon_height'))
               .width($r('app.float.vip_icon_width'))
               .margin({ right: $r('app.float.vip_icon_margin') })
-            Text(this.songList[this.selectIndex].singer)
+            // 添加边界检查，避免数组越界
+            Text(this.songList.length > 0 && this.selectIndex >= 0 && this.selectIndex < this.songList.length 
+              ? this.songList[this.selectIndex].singer 
+              : '未知歌手')
               .fontColor($r('app.color.singer'))
               .fontSize(new BreakpointType({
                 sm: $r('app.float.singer_title_sm'),

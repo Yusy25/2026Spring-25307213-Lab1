@@ -48,40 +48,9 @@ export struct MusicControlComponent {
   @Link isShowPlay: boolean;
   @StorageLink('isFoldFull') isFoldFull: boolean = false;
   private context: common.UIAbilityContext | undefined = AppStorage.get('context');
-  private callback: Callback<display.FoldDisplayMode> = (data: display.FoldDisplayMode) => {
-    if (canIUse('SystemCapability.Window.SessionManager')) {
-      if (data === display.FoldDisplayMode.FOLD_DISPLAY_MODE_FULL) {
-        this.isFoldFull = true;
-      } else {
-        this.isFoldFull = false;
-      }
-    }
-  };
 
   aboutToAppear(): void {
     this.getImageColor();
-    try {
-      if (canIUse('SystemCapability.Window.SessionManager')) {
-        let mode = display.getFoldDisplayMode();
-        if (mode === display.FoldDisplayMode.FOLD_DISPLAY_MODE_FULL) {
-          this.isFoldFull = true;
-        }
-        display.on('foldDisplayModeChange', this.callback);
-      }
-    } catch (exception) {
-      Logger.error('Failed to register callback. Code: ' + JSON.stringify(exception));
-    }
-  }
-
-  aboutToDisappear(): void {
-    if (canIUse('SystemCapability.Window.SessionManager')) {
-      try {
-        display.off('foldDisplayModeChange', this.callback);
-      } catch (error) {
-        Logger.error(TAG, `${error.code} + ${error.message}`);
-      }
-      this.isFoldFull = false;
-    }
   }
 
   build() {
